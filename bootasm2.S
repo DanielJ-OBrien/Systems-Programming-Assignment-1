@@ -47,6 +47,11 @@ cons_writeline:
 
 HexChars:	.ascii "0123456789ABCDEF"
 
+cons_write_hex_offset:
+	movw   $4, %cx
+    mov    $0x0E, %ah
+    jmp    hexloop
+
 cons_write_hex:
 	movw   $2, %cx
     mov    $0x0E, %ah
@@ -74,14 +79,15 @@ real_start:
     int     $0x13                     # Read the disk
 
     mov     $0xCFFF, %si              # Display numbers in hex
-    mov     $0, %dl                   # Sets greaterloop counter to 0
+    mov     $0x0000, %dl                   # Sets greaterloop counter to 0
     
 greaterloop:
 
     push %si
 
-    movzb     %dl, %si
-    #call    cons_write
+    movzb   %dl, %bx
+    imul    $16, %bx
+    call    cons_write_hex_offset
     inc     %dl
 
     pop %si
