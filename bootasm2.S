@@ -74,15 +74,38 @@ real_start:
     int     $0x13                     # Read the disk
 
     mov     $0xCFFF, %si              # Display numbers in hex
-    mov     $0, %dx                   # Sets loop counter to 0
+    mov     $0, %dl                   # Sets greaterloop counter to 0
+    
+greaterloop:
+
+    push %si
+
+    movzb     %dl, %si
+    #call    cons_write
+    inc     %dl
+
+    pop %si
+
+    mov     $0, %dh                   # Sets hexreadloop counter to 0
+    call	hexreadloop
+
+    call    cons_write_crlf
+
+    cmp     $15, %dl
+    jle     greaterloop
+
+    jmp     endless_loop
     
 
-loopy:
-    add     $1, %dx
+hexreadloop:
+    add     $1, %dh
 
     push %si
 
     mov (%si), %bx
+
+    movw    $space, %si
+    call    cons_write
 
     call    cons_write_hex # Prints hex values
 
@@ -90,10 +113,9 @@ loopy:
 
     inc  %si # SHOULD increment memory address
 
-    cmp     $15, %dx
-    jle     loopy
-
-    jmp     endless_loop
+    cmp     $15, %dh
+    jle     hexreadloop
+    ret
 
 endless_loop:                   # Loop forever more
     jmp     endless_loop    
@@ -105,4 +127,7 @@ boot_device:
 
 boot_message:     
     .string "Boot Loader Stage 2 loaded"      
+
+space:     
+    .string " " 
 
