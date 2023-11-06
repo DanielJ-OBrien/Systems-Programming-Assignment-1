@@ -32,6 +32,20 @@ cons_write_done:                # Something that is called will never return
                                 # not give a program any structure.  They just give a 
                                 # memory location a name that we can use in our code. 
 
+cons_write_ascii:
+    mov     $0x0e, %ah           # 0x0e is the INT 10h BIOS call to output the value contained in AL to screen
+    cmp     $0, (%si)
+    jz      cons_ascii_empty
+    movb    (%si), %al          # Load the byte at the location contained in the SI register into AL   
+    int     $0x10               # Output the character in AL to the screen
+    ret
+
+cons_ascii_empty:
+    mov     $empty, %si
+    movb    (%si), %al          # Load the byte at the location contained in the SI register into AL   
+    int     $0x10               # Output the character in AL to the screen
+    ret
+
 cons_write_crlf:
     mov     $0x0e, %ah          # Output CR
     movb    $0x0d, %al
@@ -71,15 +85,15 @@ real_start:
     movw    $boot_message, %si  # Display our boot message
     call    cons_writeline
 
+    movw    $disk_address_packet, %si # Move address of the disk address packet into SI
     movw    $1, 2(%si)                # Set the number of blocks to read to be 1
-    movw    $0xD000, 4(%si)           # Set the adddress to read into to be 0xD000
+    movw    $0xD000, 4(%si)           # Set the address to read into to be 0xD000
     movw    $0, 8(%si)                # Set the first block to read to be block 0
     mov     $0x42, %ah                # 0x42 is the int 13h BIOS function to read the disk using LBA addressing
-	movb	(boot_device), %dl        # Retrieve the ID of our boot device and put in DL	
     int     $0x13                     # Read the disk
 
-    mov     $0xCFFF, %si              # Display numbers in hex
-    mov     $0x0000, %dl                   # Sets greaterloop counter to 0
+    mov     $0xCFFF, %si              # Select starting memory address to read from
+    mov     $0x0000, %dl              # Sets greaterloop counter to 0
     
 greaterloop:
 
@@ -95,13 +109,38 @@ greaterloop:
     mov     $0, %dh                   # Sets hexreadloop counter to 0
     call	hexreadloop
 
+    push	%dx
+    sub     $16, %si
+    mov     $0, %dx
+
+    push    %si
+    movw    $space, %si
+    call    cons_write
+    pop     %si                     # Adds a space
+
+    call    displayascii
+    pop     %dx
+
     call    cons_write_crlf
 
     cmp     $15, %dl
     jle     greaterloop
 
     jmp     endless_loop
-    
+
+displayascii:
+
+    push    %si
+    call    cons_write_ascii
+    pop     %si
+
+
+    inc     %si                     # Increments memory address
+    inc     %dl                     # Increments loop counter
+
+    cmp     $15, %dl                # Loops if < 15
+    jle     displayascii
+    ret
 
 hexreadloop:
     add     $1, %dh
@@ -117,7 +156,7 @@ hexreadloop:
 
     pop %si
 
-    inc  %si # SHOULD increment memory address
+    inc  %si # increment memory address
 
     cmp     $15, %dh
     jle     hexreadloop
@@ -131,9 +170,20 @@ endless_loop:                   # Loop forever more
 boot_device:
     .byte   0
 
+disk_address_packet:
+    .byte   0x10
+    .byte   0
+    .word   0
+    .long   0
+    .long   0
+    .long   0
+
 boot_message:     
     .string "Boot Loader Stage 2 loaded"      
 
 space:     
     .string " " 
+
+empty:     
+    .string "_" 
 
