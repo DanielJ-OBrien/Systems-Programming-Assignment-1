@@ -33,16 +33,15 @@ cons_write_done:                # Something that is called will never return
                                 # memory location a name that we can use in our code. 
 
 cons_write_ascii:
-    mov     $0x0e, %ah           # 0x0e is the INT 10h BIOS call to output the value contained in AL to screen
-    cmp     $0, (%si)
-    jz      cons_ascii_empty
+    mov     $0x0e, %ah          # 0x0e is the INT 10h BIOS call to output the value contained in AL to screen
+    cmp     $0x20, (%si)
+    jl      cons_ascii_empty
     movb    (%si), %al          # Load the byte at the location contained in the SI register into AL   
     int     $0x10               # Output the character in AL to the screen
     ret
 
 cons_ascii_empty:
-    mov     $empty, %si
-    movb    (%si), %al          # Load the byte at the location contained in the SI register into AL   
+    mov     $'_', %al
     int     $0x10               # Output the character in AL to the screen
     ret
 
@@ -85,23 +84,57 @@ real_start:
     movw    $boot_message, %si  # Display our boot message
     call    cons_writeline
 
+diskread_start:
+    mov     $0, %ax
+    mov     $0, %bx
+    mov     $0, %cx
+    mov     (boot_device), %dl
+    #setting dl to 0 blows up the program,. why?
+    movw    $sector_message, %si      # Display our sector request message
+    call    cons_writeline
+
+                           # This code reads 4 keyboard inputs for sector selection
+    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    int     $0x16
+    sub     $0x30, %al     
+    imul    $1000, %ax                # Multiplies by 1000 for the 1000 column
+    add     %al, %bl 
+
+    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    int     $0x16
+    sub     $0x30, %al     
+    imul    $100, %ax     
+    add     %al, %bl   
+
+    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    int     $0x16
+    sub     $0x30, %al     
+    imul    $10, %ax     
+    add     %al, %bl  
+
+    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    int     $0x16
+    sub     $0x30, %al         
+    add     %al, %bl  
+
     movw    $disk_address_packet, %si # Move address of the disk address packet into SI
     movw    $1, 2(%si)                # Set the number of blocks to read to be 1
     movw    $0xD000, 4(%si)           # Set the address to read into to be 0xD000
-    movw    $0, 8(%si)                # Set the first block to read to be block 0
+    mov     %bl, 8(%si)               # Set the first block to read to be block 0
+    
     mov     $0x42, %ah                # 0x42 is the int 13h BIOS function to read the disk using LBA addressing
     int     $0x13                     # Read the disk
 
     mov     $0xCFFF, %si              # Select starting memory address to read from
-    mov     $0x0000, %dl              # Sets greaterloop counter to 0
-    
+    mov     $0, %dl              # Sets greaterloop counter to 0
+
 greaterloop:
 
     push %si
 
     movzb   %dl, %bx
     imul    $16, %bx
-    call    cons_write_hex_offset
+    call    cons_write_hex_offset     # Calls hex offset function
     inc     %dl
 
     pop %si
@@ -110,23 +143,39 @@ greaterloop:
     call	hexreadloop
 
     push	%dx
-    sub     $16, %si
-    mov     $0, %dx
+    sub     $15, %si                  # Reduces the memory address counted by 16 so that the ascii
+    mov     $1, %dx                   # can be iterated through as well
 
     push    %si
     movw    $space, %si
     call    cons_write
     pop     %si                     # Adds a space
 
+
     call    displayascii
     pop     %dx
 
     call    cons_write_crlf
 
-    cmp     $15, %dl
-    jle     greaterloop
 
-    jmp     endless_loop
+    cmp    $16, %dl
+    je     fullsectorloop
+    cmp    $32, %dl
+    jl     greaterloop
+    je     diskread_start
+fullsectorloop:
+
+    push    %si
+    movw    $pressanykey, %si
+    call    cons_writeline
+    pop     %si                     # Displays the press any key line
+
+    push    %ax
+    mov     $0x00, %ah
+    int     $0x16                   # Waits on key press
+    pop     %ax
+
+    jmp     greaterloop
 
 displayascii:
 
@@ -138,7 +187,7 @@ displayascii:
     inc     %si                     # Increments memory address
     inc     %dl                     # Increments loop counter
 
-    cmp     $15, %dl                # Loops if < 15
+    cmp     $16, %dl                # Loops if < 15
     jle     displayascii
     ret
 
@@ -162,8 +211,6 @@ hexreadloop:
     jle     hexreadloop
     ret
 
-endless_loop:                   # Loop forever more
-    jmp     endless_loop    
 
 # Program data
 
@@ -179,11 +226,26 @@ disk_address_packet:
     .long   0
 
 boot_message:     
-    .string "Boot Loader Stage 2 loaded"      
+    .string "Boot Loader Stage 2 loaded"
+
+sector_message:     
+    .string "Which sector would you like to read? (4 digits i.e 0001) "     
 
 space:     
     .string " " 
 
-empty:     
-    .string "_" 
+pressanykey:     
+    .string "Press a key to continue" 
+
+test_1:
+    .string "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+test_2:
+    .string "abcdefghijklmnopqrstuvwxyz"
+
+test3:
+    .string "!@#$%^&*()+-=[]{}|\;:',.<>/?`~"
+
+test_4:
+    .string "0123456789"
 
