@@ -95,28 +95,38 @@ diskread_start:
                                    # This code reads 4 keyboard inputs for sector selection
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
+    mov     $0x0e, %ah
+    int     $0x10
     sub     $0x30, %al     
     imul    $1000, %ax          # Multiplies by 1000 for the 1000 column
     add     %al, %bl 
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
+    mov     $0x0e, %ah
+    int     $0x10
     sub     $0x30, %al     
     imul    $100, %ax     
     add     %al, %bl
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
+    mov     $0x0e, %ah
+    int     $0x10
     sub     $0x30, %al     
     imul    $10, %ax     
     add     %al, %bl
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
+    mov     $0x0e, %ah
+    int     $0x10
     sub     $0x30, %al         
     add     %al, %bl
 
     mov     %al, %cl
+
+    call    cons_write_crlf
 
     mov     $0, %ax
     mov     $0, %bx
@@ -126,8 +136,12 @@ diskread_start:
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
+    mov     $0x0e, %ah
+    int     $0x10
     sub     $0x30, %al         
     add     %al, %bl
+
+    call cons_write_crlf
 
 
 readsectors:
