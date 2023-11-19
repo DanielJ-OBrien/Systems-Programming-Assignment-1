@@ -204,6 +204,9 @@ greaterloop:
     je     fullsectorloop
     cmp    %bl, %dl
     jl     greaterloop
+
+    jmp    greaterloop
+
 fullsectorloop:
 
 
@@ -280,7 +283,7 @@ sector_message:
     .string "Which sector would you like to read? (4 digits i.e 0001) "     
 
 sectorcount_message:     
-    .string "How many sectors would you like to read? (1 digit 1-3) " 
+    .string "How many sectors would you like to read? (1 digit 1-8) " 
 
 space:     
     .string " " 
