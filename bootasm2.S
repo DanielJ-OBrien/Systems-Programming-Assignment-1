@@ -79,9 +79,9 @@ hexloop:
 	ret
 
 real_start:
-    movb    %dl, (boot_device) # Boot device number is passed in DL from BIOS. Save it hear since DL might get trashed
+    movb    %dl, (boot_device)     # Boot device number is passed in DL from BIOS. Save it hear since DL might get trashed
 
-    movw    $boot_message, %si  # Display our boot message
+    movw    $boot_message, %si     # Display our boot message
     call    cons_writeline
 
 diskread_start:
@@ -89,59 +89,81 @@ diskread_start:
     mov     $0, %bx
     mov     $0, %cx
     mov     (boot_device), %dl
-    #setting dl to 0 blows up the program,. why?
-    movw    $sector_message, %si      # Display our sector request message
+    movw    $sector_message, %si   # Display our sector request message
     call    cons_writeline
 
-                           # This code reads 4 keyboard inputs for sector selection
-    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+                                   # This code reads 4 keyboard inputs for sector selection
+    mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     sub     $0x30, %al     
-    imul    $1000, %ax                # Multiplies by 1000 for the 1000 column
+    imul    $1000, %ax          # Multiplies by 1000 for the 1000 column
     add     %al, %bl 
 
-    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     sub     $0x30, %al     
     imul    $100, %ax     
-    add     %al, %bl   
+    add     %al, %bl
 
-    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     sub     $0x30, %al     
     imul    $10, %ax     
-    add     %al, %bl  
+    add     %al, %bl
 
-    mov     $0x00, %ah                # Converts keyboard input from ascii to actual value 
+    mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     sub     $0x30, %al         
-    add     %al, %bl  
+    add     %al, %bl
 
-    movw    $disk_address_packet, %si # Move address of the disk address packet into SI
-    movw    $1, 2(%si)                # Set the number of blocks to read to be 1
-    movw    $0xD000, 4(%si)           # Set the address to read into to be 0xD000
-    mov     %bl, 8(%si)               # Set the first block to read to be block 0
+    mov     %al, %cl
+
+    mov     $0, %ax
+    mov     $0, %bx
+
+    movw    $sectorcount_message, %si   # Display our sector request message
+    call    cons_writeline
+
+    mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
+    int     $0x16
+    sub     $0x30, %al         
+    add     %al, %bl
+
+
+readsectors:
+
+    movw    $disk_address_packet, %si  # Move address of the disk address packet into SI
+    mov     %bl, 2(%si)                # Set the number of blocks to read to be 1
+    movw    $0xD000, 4(%si)            # Set the address to read into to be 0xD000
+    mov     %cl, 8(%si)                # first block to read to be block x
     
-    mov     $0x42, %ah                # 0x42 is the int 13h BIOS function to read the disk using LBA addressing
-    int     $0x13                     # Read the disk
+    mov     $0x42, %ah                 # 0x42 is the int 13h BIOS function to read the disk using LBA addressing
+    int     $0x13                      # Read the disk
 
-    mov     $0xCFFF, %si              # Select starting memory address to read from
-    mov     $0, %dl              # Sets greaterloop counter to 0
+    mov     $0xCFFF, %si               # Select starting memory address to read from
+    mov     $0, %dl                    # Sets greaterloop counter to 0
+ 
+    imul    $32, %bx
 
 greaterloop:
 
     push %si
 
+    push    %bx
     movzb   %dl, %bx
     imul    $16, %bx
     call    cons_write_hex_offset     # Calls hex offset function
-    inc     %dl
+    add     $1, %dl
+    pop     %bx
 
     pop %si
 
+    push    %bx
     mov     $0, %dh                   # Sets hexreadloop counter to 0
     call	hexreadloop
+    pop     %bx
 
+    push    %bx
     push	%dx
     sub     $15, %si                  # Reduces the memory address counted by 16 so that the ascii
     mov     $1, %dx                   # can be iterated through as well
@@ -149,30 +171,36 @@ greaterloop:
     push    %si
     movw    $space, %si
     call    cons_write
-    pop     %si                     # Adds a space
+    pop     %si                       # Adds a space
 
 
     call    displayascii
-    pop     %dx
+    
 
     call    cons_write_crlf
 
+    pop     %dx
 
-    cmp    $16, %dl
-    je     fullsectorloop
-    cmp    $32, %dl
-    jl     greaterloop
+    pop     %bx
+
+
+    cmp    %bl, %dl
     je     diskread_start
+    test   $0x0F, %dl                # Checks for multiples of 16 to at a keyboard press break to
+    je     fullsectorloop
+    cmp    %bl, %dl
+    jl     greaterloop
 fullsectorloop:
+
 
     push    %si
     movw    $pressanykey, %si
     call    cons_writeline
-    pop     %si                     # Displays the press any key line
+    pop     %si                      # Displays the press any key line
 
     push    %ax
     mov     $0x00, %ah
-    int     $0x16                   # Waits on key press
+    int     $0x16                    # Waits on key press
     pop     %ax
 
     jmp     greaterloop
@@ -184,10 +212,10 @@ displayascii:
     pop     %si
 
 
-    inc     %si                     # Increments memory address
-    inc     %dl                     # Increments loop counter
+    inc     %si                      # Increments memory address
+    inc     %dl                      # Increments loop counter
 
-    cmp     $16, %dl                # Loops if < 15
+    cmp     $16, %dl                 # Loops if < 15
     jle     displayascii
     ret
 
@@ -201,11 +229,11 @@ hexreadloop:
     movw    $space, %si
     call    cons_write
 
-    call    cons_write_hex # Prints hex values
+    call    cons_write_hex          # Prints hex values
 
     pop %si
 
-    inc  %si # increment memory address
+    inc  %si                        # increment memory address
 
     cmp     $15, %dh
     jle     hexreadloop
@@ -213,6 +241,12 @@ hexreadloop:
 
 
 # Program data
+
+first_sector:
+    .byte   0
+
+sector_count:
+    .byte   0
 
 boot_device:
     .byte   0
@@ -230,6 +264,9 @@ boot_message:
 
 sector_message:     
     .string "Which sector would you like to read? (4 digits i.e 0001) "     
+
+sectorcount_message:     
+    .string "How many sectors would you like to read? (1 digit 1-3) " 
 
 space:     
     .string " " 
