@@ -187,7 +187,7 @@ greaterloop:
 
     push    %bx
     push	%dx
-    sub     $15, %si                  # Reduces the memory address counted by 16 so that the ascii
+    sub     $16, %si                  # Reduces the memory address counted by 16 so that the ascii
     mov     $1, %dx                   # can be iterated through as well
 
     push    %si
@@ -232,15 +232,17 @@ fullsectorloop:
 
 displayascii:
 
+
+    inc     %si                      # Increments memory address
     push    %si
     call    cons_write_ascii
     pop     %si
 
 
-    inc     %si                      # Increments memory address
+    
     inc     %dl                      # Increments loop counter
 
-    cmp     $16, %dl                 # Loops if < 15
+    cmp     $15, %dl                 # Loops if < 15
     jle     displayascii
     ret
 
