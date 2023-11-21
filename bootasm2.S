@@ -61,7 +61,7 @@ cons_writeline:
 HexChars:	.ascii "0123456789ABCDEF"
 
 cons_write_hex_offset:
-	movw   $4, %cx
+	movw   $4, %cx              # Same as the standard write_hex, but shows 4 chars for the offset.
     mov    $0x0E, %ah
     jmp    hexloop
 
@@ -85,6 +85,9 @@ real_start:
     call    cons_writeline
 
 diskread_start:
+
+    call    cons_write_crlf
+
     mov     $0, %ax
     mov     $0, %bx
     mov     $0, %cx
@@ -103,7 +106,7 @@ diskread_start:
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
-    mov     $0x0e, %ah
+    mov     $0x0e, %ah             # Displays the pressed key
     int     $0x10
     sub     $0x30, %al     
     imul    $100, %ax     
@@ -124,7 +127,7 @@ diskread_start:
     sub     $0x30, %al         
     add     %al, %bl
 
-    mov     %al, %cl
+    mov     %bl, %cl
 
     call    cons_write_crlf
 
@@ -140,6 +143,11 @@ diskread_start:
     int     $0x10
     sub     $0x30, %al         
     add     %al, %bl
+
+    cmp     $0, %bl                 # Data verification so people can only see 1-8 sectors at any given time
+    jz      diskread_start
+    cmp     $9, %bl
+    jge     diskread_start
 
     call cons_write_crlf
 
@@ -291,15 +299,12 @@ space:
 pressanykey:     
     .string "Press a key to continue" 
 
-test_1:
-    .string "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+testletters:
+    .string "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
 
-test_2:
-    .string "abcdefghijklmnopqrstuvwxyz"
+testnumbers:
+    .string "1234567890"
 
-test3:
-    .string "!@#$%^&*()+-=[]{}|\;:',.<>/?`~"
-
-test_4:
-    .string "0123456789"
+testsymbols:
+    .string "!£$%^&*()-=+[]{}|\;:',.<>/?`~"
 
