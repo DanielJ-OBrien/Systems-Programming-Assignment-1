@@ -242,7 +242,7 @@ displayascii:
     
     inc     %dl                      # Increments loop counter
 
-    cmp     $15, %dl                 # Loops if < 15
+    cmp     $16, %dl                 # Loops if < 15
     jle     displayascii
     ret
 
