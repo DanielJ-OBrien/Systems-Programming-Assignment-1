@@ -100,25 +100,31 @@ diskread_start:
     int     $0x16
     mov     $0x0e, %ah
     int     $0x10
-    sub     $0x30, %al     
-    imul    $1000, %ax          # Multiplies by 1000 for the 1000 column
-    add     %al, %bl 
+    cmp     $0x0d, %al
+    je      continue_inputs
+    sub     $0x30, %al             
+    add     %al, %bl
+    imul    $10, %bx 
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     mov     $0x0e, %ah             # Displays the pressed key
     int     $0x10
-    sub     $0x30, %al     
-    imul    $100, %ax     
+    cmp     $0x0d, %al
+    je      continue_inputs
+    sub     $0x30, %al        
     add     %al, %bl
+    imul    $10, %bx
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     mov     $0x0e, %ah
     int     $0x10
-    sub     $0x30, %al     
-    imul    $10, %ax     
+    cmp     $0x0d, %al
+    je      continue_inputs
+    sub     $0x30, %al        
     add     %al, %bl
+    imul    $10, %bx
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
@@ -126,6 +132,9 @@ diskread_start:
     int     $0x10
     sub     $0x30, %al         
     add     %al, %bl
+
+
+continue_inputs:
 
     mov     %bl, %cl
 
