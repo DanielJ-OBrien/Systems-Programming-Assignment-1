@@ -104,7 +104,7 @@ diskread_start:
     je      continue_inputs
     sub     $0x30, %al             
     add     %al, %bl
-    imul    $10, %bx 
+    
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
@@ -112,9 +112,9 @@ diskread_start:
     int     $0x10
     cmp     $0x0d, %al
     je      continue_inputs
-    sub     $0x30, %al        
+    sub     $0x30, %al 
+    imul    $10, %bx       
     add     %al, %bl
-    imul    $10, %bx
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
@@ -122,15 +122,17 @@ diskread_start:
     int     $0x10
     cmp     $0x0d, %al
     je      continue_inputs
-    sub     $0x30, %al        
+    sub     $0x30, %al    
+    imul    $10, %bx    
     add     %al, %bl
-    imul    $10, %bx
+
 
     mov     $0x00, %ah             # Converts keyboard input from ascii to actual value 
     int     $0x16
     mov     $0x0e, %ah
     int     $0x10
-    sub     $0x30, %al         
+    sub     $0x30, %al    
+    imul    $10, %bx     
     add     %al, %bl
 
 
@@ -299,7 +301,7 @@ boot_message:
     .string "Boot Loader Stage 2 loaded"
 
 sector_message:     
-    .string "Which sector would you like to read? (4 digits i.e 0001) "     
+    .string "Which sector would you like to read? (Up to 4 digits i.e 1, 64, 9999) "     
 
 sectorcount_message:     
     .string "How many sectors would you like to read? (1 digit 1-8) " 
