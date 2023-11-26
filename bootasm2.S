@@ -33,8 +33,10 @@ cons_write_done:                # Something that is called will never return
                                 # memory location a name that we can use in our code. 
 
 cons_write_ascii:
-    mov     $0x0e, %ah          # 0x0e is the INT 10h BIOS call to output the value contained in AL to screen
-    cmp     $0x20, (%si)
+    mov     $0, %ah          # 0x0e is the INT 10h BIOS call to output the value contained in AL to screen
+    mov     (%si), %al
+    cmp     $0x20, %ax 
+    mov     $0x0e, %ah  
     jl      cons_ascii_empty
     movb    (%si), %al          # Load the byte at the location contained in the SI register into AL   
     int     $0x10               # Output the character in AL to the screen
